@@ -24,14 +24,17 @@ class WebBundle {
         this.name = name
     }
 
+    @Input
     String getName() {
         return name
     }
 
+    @Input
     boolean getHasJs() {
         return !js.isEmpty()
     }
 
+    @Input
     boolean getHasCss() {
         return !css.isEmpty()
     }

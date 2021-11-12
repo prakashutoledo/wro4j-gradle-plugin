@@ -3,8 +3,10 @@ package ro.isdc.wro4j.gradle
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang.StringUtils
 import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Nested
+import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFiles
 import org.gradle.api.tasks.TaskAction
 import org.mockito.Matchers
@@ -30,10 +32,14 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import java.util.zip.GZIPOutputStream
 
-public class WebCompileTask extends DefaultTask {
+class WebCompileTask extends DefaultTask {
     private final List<String> uriLocators = ["servletContext"]
     private WebBundle bundle
+
+    @InputDirectory
     private File sourcesDir
+
+    @OutputDirectory
     private File outputDir
 
     WebCompileTask() {

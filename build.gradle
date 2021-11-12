@@ -1,39 +1,57 @@
 buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6'
+    ext {
+        wro4jExtensionsVersion = '1.8.0'
+        mockitoAllVersion = '1.10.19'
+        commonsLangVersion = '2.6'
+        javaxServletApiVersion = '3.1.0'
+        netflixNebulaTestVersion = '4.0.0'
     }
 }
 
-group = 'ro.isdc.wro4j.gradle'
-version = '1.8.0.Beta4'
+plugins {
+    id 'groovy'
+    id 'java-library'
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+    id 'com.jfrog.bintray' version '1.8.5'
+}
 
-apply plugin: 'groovy'
-apply plugin: 'maven'
-apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
+group = 'ro.isdc.wro4j.gradle'
+version = '1.32.0.Beta10'
 
 sourceCompatibility = 1.6
 targetCompatibility = 1.6
+
 
 repositories {
     jcenter()
 }
 
 dependencies {
-    compile gradleApi()
-    compile ('ro.isdc.wro4j:wro4j-extensions:1.8.0') {
+    api gradleApi()
+    api localGroovy()
+    api ("ro.isdc.wro4j:wro4j-extensions:${wro4jExtensionsVersion}") {
         exclude module: 'groovy-all'
     }
-    compile 'org.mockito:mockito-all:1.10.19'
-    compile 'commons-lang:commons-lang:2.6'
+    api "commons-lang:commons-lang:${commonsLangVersion}"
+    api "javax.servlet:javax.servlet-api:${javaxServletApiVersion}"
+    api "org.mockito:mockito-all:${mockitoAllVersion}"
 
-    runtime 'javax.servlet:javax.servlet-api:3.1.0'
-
-    testCompile ('com.netflix.nebula:nebula-test:4.0.0') {
+    testImplementation ("com.netflix.nebula:nebula-test:${netflixNebulaTestVersion}") {
         exclude module: 'groovy-all'
+    }
+    testImplementation ("org.spockframework:spock-core:2.0-M2-groovy-2.5") {
+        exclude group: 'org.codehaus.groovy', module: 'groovy'
+        exclude group: 'org.codegaus.groovy', module: 'groovy-test'
+    }
+}
+
+gradlePlugin {
+    plugins {
+        wro4jPlugin {
+            id = 'wro4j'
+            implementationClass = 'ro.isdc.wro4j.gradle.Wro4JPlugin'
+        }
     }
 }
 
@@ -52,21 +70,27 @@ bintray {
 }
 
 task sourceJar(type: Jar) {
-    from sourceSets.main.allSource
+    from project.sourceSets.main.allSource, processResources.outputs
+
+    project.afterEvaluate {
+        manifest {
+            attributes("Implementation-Version": project.version, "Implementation-Title": project.name)
+        }
+    }
 }
 
 publishing {
     publications {
-        bintray (MavenPublication) {
-            from components.java
+        create('bintray', MavenPublication) { publication ->
+            publication.from project.components.java
 
-            artifact sourceJar {
-                classifier "sources"
+            publication.artifact(project.sourceJar) {
+                classifier = "sources"
             }
-
-            groupId project.group
-            artifactId project.name
-            version project.version
+            
+            publication.version = project.version
+            publication.artifactId =  project.name
+            publication.groupId = project.group
         }
     }
 }

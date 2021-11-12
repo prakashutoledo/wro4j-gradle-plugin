@@ -4,8 +4,10 @@ import org.apache.commons.lang.StringUtils
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin;
 import org.gradle.api.Project
+import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.file.FileCopyDetails
 import org.gradle.api.file.RelativePath
+import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
@@ -16,14 +18,15 @@ class Wro4JPlugin implements Plugin<Project> {
     private Copy processWebTestResources
 
     @Override
-    public void apply(Project project) {
-        def javaConvention = project.convention.findPlugin(JavaPluginConvention)
+    void apply(Project project) {
+        def javaConvention = project.convention.findPlugin(JavaPlugin)
+
         if (javaConvention == null) {
-            throw new GradleException("wro4j requires java plugin to be applied first")
+            project.plugins.apply(JavaPlugin)
         }
 
         def webResources = project.extensions.create(WebResourceSet.NAME, WebResourceSet, project)
-        def webjarsRuntime = project.configurations.create("webjarsRuntime")
+        def webjarsRuntime = project.configurations.create("webjarsRuntimeOnly")
         def webjars = project.configurations
                 .create("webjars")
                 .extendsFrom(webjarsRuntime)
@@ -31,12 +34,12 @@ class Wro4JPlugin implements Plugin<Project> {
 
         /* Only webjarsRuntime will be included in final dependencies */
         project.configurations
-                .getByName("runtime")
+                .getByName("runtimeOnly")
                 .extendsFrom(webjarsRuntime)
 
         /* webjars and webjarsTest are included in testCompile to allow IDEs (like IntelliJ IDEA) index js/css sources */
         project.configurations
-                .getByName("testCompile")
+                .getByName("testImplementation")
                 .extendsFrom(webjars, webjarsTest)
 
         prepareAssets = project.tasks.create("prepareAssets", Copy)
@@ -58,7 +61,7 @@ class Wro4JPlugin implements Plugin<Project> {
     }
 
     private void configureTasks(WebResourceSet webResources, Project project, JavaPluginConvention javaConvention) {
-        def srcMain = javaConvention.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME);
+        def srcMain = project.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME);
 
         def srcMainDir = webResources.srcMainDir
         def srcTestDir = webResources.srcTestDir
@@ -71,6 +74,7 @@ class Wro4JPlugin implements Plugin<Project> {
 
         /* Configure processWebResources task */
         prepareAssets.with {
+            duplicatesStrategy = DuplicatesStrategy.INCLUDE
             from srcMainDir
             into buildMainDir
         }
@@ -79,6 +83,7 @@ class Wro4JPlugin implements Plugin<Project> {
         def webjars = project.configurations.getByName("webjars")
         def prepareWebjars = project.tasks.create("prepareWebjars", Copy)
         prepareWebjars.with {
+            duplicatesStrategy = DuplicatesStrategy.INCLUDE
             from (webjars.collect { project.zipTree(it) }) {
                 eachFile { unwrapWebjar(it) }
             }
@@ -99,6 +104,7 @@ class Wro4JPlugin implements Plugin<Project> {
         }
 
         processWebResources.with {
+            duplicatesStrategy = DuplicatesStrategy.INCLUDE
             from new File(buildMainDir, webResources.srcStaticFolder)
             into dstDir
         }
@@ -111,6 +117,7 @@ class Wro4JPlugin implements Plugin<Project> {
         def webjarsTest = project.configurations.getByName("webjarsTest")
         def prepareWebjarsTest = project.tasks.create("prepareWebjarsTest", Copy)
         prepareWebjarsTest.with {
+            duplicatesStrategy = DuplicatesStrategy.INCLUDE
             from (webjarsTest.collect { project.zipTree(it) }) {
                 eachFile { unwrapWebjar(it) }
             }

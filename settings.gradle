@@ -1,0 +1,14 @@
+pluginManagement {
+    repositories {
+        if ('useMavenLocal' == 'true') {
+            mavenLocal()
+        }
+
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+
+        jcenter()
+    }
+}
+rootProject.name = 'wro4j-gradle-plugin'
